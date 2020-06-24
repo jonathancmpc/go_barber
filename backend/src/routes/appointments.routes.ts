@@ -1,10 +1,14 @@
 import { Router } from 'express';
-import { startOfHour, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 
 import AppointmentsRepository from '../repositories/AppointmentsRepository';
+import CreateAppointmentService from '../services/CreateAppointmentService';
 
 const appointmentsRouter = Router();
 const appointmentsRepository = new AppointmentsRepository();
+const createAppointmentService = new CreateAppointmentService(appointmentsRepository);
+
+/* A Rota deve estar preocupada apenas com: receber a requisição, chamar outro arquivo para tratar essa requisição e devolver a resposta para o cliente. */
 
 /* Listando os agendamentos */
 appointmentsRouter.get('/', (request, response) => {
@@ -15,26 +19,24 @@ appointmentsRouter.get('/', (request, response) => {
 
 /* Como temos o método use dentro de index.ts que já nos dá a rota com /appointments, não precisamos utiliza-la aqui nessas rotas, por já cai vir automáticamente, bastando passar o próximo item depois da barra */
 appointmentsRouter.post('/', (request,response) => {
-  /* Pega o prestador de serviço(barbeiro) e a data hora do agendamento */
-  const { provider, date } = request.body;
+  /* Retornando o erro caso já tenha agendamento, o erro foi codificado dentro do service com o throw */
+  try{
+    /* Pega o prestador de serviço(barbeiro) e a data hora do agendamento */
+    const { provider, date } = request.body;
 
-  /* Converte primeitamente em data, e depois zera os minutos e segundos, passando somente a hora inicial da data informada */
-  const parsedDate = startOfHour(parseISO(date));
+    // A transformação dos dados não é regra de negócio(parse), porém a manipulação da data sim.
+    const parsedDate = parseISO(date);
 
-  /* Verifica se existe alguma data igual dentro do nosso banco de dados ficticio, se tiver, ele retorna essa data dentro da variável findAppointmentInSameDate, e se não encontrar nenhuma, retorna false */
-  const findAppointmentInSameDate = appointmentsRepository.findByDate(parsedDate);
+    //Chamando o Service com a regra de negócio e passando o repositório como parãmetro
+    const appointment = createAppointmentService.execute({
+      provider,
+      date: parsedDate,
+    });
 
-  if (findAppointmentInSameDate) {
-    return response.status(400).json({ message: 'This appointment is already booked' });
+    return response.json(appointment);
+  } catch (err) {
+    return response.status(400).json({ error: err.message }) //retorna o erro que está dentro do throw em Service
   }
-
-  /* Enviando os parâmetros NOMEADOS como objetos obedecendo o conceito de DTO */
-  const appointment = appointmentsRepository.create({
-    provider,
-    date: parsedDate,
-  });
-
-  return response.json(appointment);
 });
 
 export default appointmentsRouter;
