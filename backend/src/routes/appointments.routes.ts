@@ -6,6 +6,13 @@ import AppointmentsRepository from '../repositories/AppointmentsRepository';
 const appointmentsRouter = Router();
 const appointmentsRepository = new AppointmentsRepository();
 
+/* Listando os agendamentos */
+appointmentsRouter.get('/', (request, response) => {
+  const appointments = appointmentsRepository.all();
+
+  return response.json(appointments);
+});
+
 /* Como temos o método use dentro de index.ts que já nos dá a rota com /appointments, não precisamos utiliza-la aqui nessas rotas, por já cai vir automáticamente, bastando passar o próximo item depois da barra */
 appointmentsRouter.post('/', (request,response) => {
   /* Pega o prestador de serviço(barbeiro) e a data hora do agendamento */
@@ -21,7 +28,11 @@ appointmentsRouter.post('/', (request,response) => {
     return response.status(400).json({ message: 'This appointment is already booked' });
   }
 
-  const appointment = appointmentsRepository.create(provider, parsedDate);
+  /* Enviando os parâmetros NOMEADOS como objetos obedecendo o conceito de DTO */
+  const appointment = appointmentsRepository.create({
+    provider,
+    date: parsedDate,
+  });
 
   return response.json(appointment);
 });
