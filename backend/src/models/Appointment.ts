@@ -1,6 +1,7 @@
 /* Toda vez que formos fazer um agendamento iremos utilizar esse arquivo */
 import { uuid } from 'uuidv4';
 
+/* Declarando o modelo de dados */
 class Appointment {
   id: string;
 
